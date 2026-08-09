@@ -1,0 +1,9 @@
+dash==2.18.2
+dash-mantine-components==0.14.7
+python-dotenv==1.0.1
+flask==3.0.3
+gunicorn==23.0.0
+qrcode[pil]==8.0
+Pillow==11.1.0
+Werkzeug==3.0.6
+requests==2.32.3

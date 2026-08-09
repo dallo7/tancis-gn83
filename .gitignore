@@ -1,0 +1,10 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+data/*.db
+static/invoices/*
+!static/invoices/.gitkeep
+.DS_Store
+*.log

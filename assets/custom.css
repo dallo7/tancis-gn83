@@ -1,0 +1,79 @@
+:root {
+  --tcams-navy: #0B3A6E;
+  --tcams-blue: #1B5FA8;
+  --tcams-green: #1F9D55;
+  --tcams-gold: #F2C94C;
+  --tcams-sky: #5BB4E5;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+  background:
+    radial-gradient(circle at 10% 10%, rgba(91, 180, 229, 0.18), transparent 35%),
+    radial-gradient(circle at 90% 0%, rgba(31, 157, 85, 0.12), transparent 30%),
+    linear-gradient(180deg, #EEF4FB 0%, #F8FAFC 45%, #FFFFFF 100%);
+  font-family: "Segoe UI", "Trebuchet MS", sans-serif;
+}
+
+.tcams-shell {
+  min-height: 100vh;
+}
+
+.brand-ribbon {
+  height: 6px;
+  width: 100%;
+  background: linear-gradient(90deg, var(--tcams-sky), var(--tcams-navy), var(--tcams-green), var(--tcams-gold));
+}
+
+.login-hero {
+  min-height: calc(100vh - 6px);
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.92) !important;
+  border: 1px solid rgba(11, 58, 110, 0.08) !important;
+  box-shadow: 0 20px 50px rgba(11, 58, 110, 0.12) !important;
+}
+
+.stat-card {
+  border-left: 4px solid var(--tcams-blue) !important;
+}
+
+.nav-pill {
+  border-radius: 999px !important;
+}
+
+.invoice-preview-frame {
+  width: 100%;
+  min-height: 720px;
+  border: 1px solid #D7DEE8;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.muted {
+  color: #64748b;
+}
+
+.topbar {
+  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.85) !important;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+}
+
+.payload-box {
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 12px;
+  white-space: pre-wrap;
+  background: #0F172A;
+  color: #E2E8F0;
+  border-radius: 12px;
+  padding: 14px;
+  max-height: 360px;
+  overflow: auto;
+}
