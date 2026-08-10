@@ -1,4 +1,4 @@
-"""Rotating IF-I-CLR-080 sample payloads for the TANCIS simulator."""
+"""Rotating IF-E-CLR-018 sample payloads for the TANCIS simulator."""
 
 from __future__ import annotations
 
@@ -9,12 +9,15 @@ from typing import Any, Callable, Dict, List
 ScenarioBuilder = Callable[[Dict[str, Any], str], Dict[str, Any]]
 
 
+from services.interfaces import CONSIGNMENT_INFORMATION
+
+
 def _base_header(user: dict, tansad: str) -> Dict[str, Any]:
     return {
-        "interface_id": "IF-I-CLR-080",
+        "interface_id": CONSIGNMENT_INFORMATION,
         "send_date_and_time": datetime.utcnow().strftime("%Y%m%d%H%M%S") + "000",
-        "sender_id": "TANCIS_ED_SNDR",
-        "receiver_id": "TCAMS_ED_RCVR",
+        "sender_id": "SNDR-IFECLR018",
+        "receiver_id": "RCVR-IFCLR018",
         "reference_number": f"REF-{user['username'].upper()}-{datetime.utcnow().strftime('%H%M%S')}",
         "transaction_id": f"TXN-{tansad}-001",
     }

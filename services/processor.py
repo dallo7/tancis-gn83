@@ -1,4 +1,4 @@
-"""Process IF-I-CLR-080 consignments and emit IF-I-CLR-081 invoices."""
+"""Process IF-E-CLR-018 consignments and emit IF-E-CLR-019 invoices."""
 
 from __future__ import annotations
 
@@ -10,6 +10,13 @@ from typing import Any, Dict, Optional, Tuple
 from services import database as db
 from services.config import BASE_DIR, BASE_URL
 from services.gn83 import calculate_fees
+from services.interfaces import (
+    AGENT_FEE_INVOICE,
+    CONSIGNMENT_INFORMATION,
+    LEGACY_CONSIGNMENT,
+    LEGACY_INVOICE,
+    CONSIGNMENT_INTERFACE_IDS,
+)
 from services.invoice_engine import (
     generate_invoice_no,
     generate_suc_number,
@@ -32,7 +39,7 @@ def build_081_payload(
 ) -> Dict[str, Any]:
     return {
         "header": {
-            "interface_id": "IF-I-CLR-081",
+            "interface_id": AGENT_FEE_INVOICE,
             "send_date_and_time": _timestamp(),
             "sender_id": "TCAMS_ED_SNDR",
             "receiver_id": "TRA_ED_RCVR",
@@ -68,18 +75,20 @@ def process_consignment(
     invoice_type: str = "G",
 ) -> Tuple[Dict[str, Any], Optional[Dict[str, Any]]]:
     """
-    Accept IF-I-CLR-080, generate invoice, store, notify CFA, and return 080 ack + invoice record.
+    Accept IF-E-CLR-018 Consignment Information (legacy IF-I-CLR-080), generate invoice,
+    store, notify CFA, and return ack + invoice record.
     Unknown declarant TINs are still processed and filed with lineage for operations.
     """
     header = payload.get("header") or {}
     message_info = payload.get("message_info") or {}
 
     if not header:
-        return ack("IF-I-CLR-080", "E101", "Missing HTTP Header", "", ""), None
-    if header.get("interface_id") != "IF-I-CLR-080":
+        return ack(CONSIGNMENT_INFORMATION, "E101", "Missing HTTP Header", "", ""), None
+    interface_id = str(header.get("interface_id") or "").strip()
+    if interface_id not in CONSIGNMENT_INTERFACE_IDS:
         return (
             ack(
-                header.get("interface_id") or "IF-I-CLR-080",
+                interface_id or CONSIGNMENT_INFORMATION,
                 "E201",
                 "Interface id not found",
                 header.get("reference_number", ""),
@@ -96,7 +105,7 @@ def process_consignment(
 
     if not tansad_no or not declarant_tin:
         return (
-            ack("IF-I-CLR-080", "E102", "Invalid Request Parameter", reference, txn),
+            ack(CONSIGNMENT_INFORMATION, "E102", "Invalid Request Parameter", reference, txn),
             None,
         )
 
@@ -125,7 +134,7 @@ def process_consignment(
             user["id"],
             "CONSIGNMENT",
             "New consignment received from TANCIS",
-            f"TANSAD {tansad_no} received via IF-I-CLR-080. Invoice generation started.",
+            f"TANSAD {tansad_no} received via IF-E-CLR-018 (Consignment Information). Invoice generation started.",
         )
 
     calc = calculate_fees(message_info, declarant_tin)
@@ -162,10 +171,10 @@ def process_consignment(
         absolute_invoice_url=absolute_invoice_url,
     )
 
-    # Simulated successful push to TANCIS (IF-I-CLR-081 -> S001)
+    # Simulated successful push to TANCIS (IF-E-CLR-019 -> S001)
     tancis_result = {
         "header": {
-            "interface_id": "IF-I-CLR-081",
+            "interface_id": AGENT_FEE_INVOICE,
             "receive_date_and_time": datetime.utcnow().strftime("%d-%m-%Y %H:%M:%S"),
             "result_status_code": "S001",
             "result_message": "Successful data transmission",
@@ -194,13 +203,13 @@ def process_consignment(
             "Invoice generated and pushed to TANCIS",
             (
                 f"Invoice {invoice_no} ({artifacts['fee_mode']}) for TANSAD {tansad_no} "
-                f"total {artifacts['currency']} {artifacts['total_due']:,.2f} sent via IF-I-CLR-081."
+                f"total {artifacts['currency']} {artifacts['total_due']:,.2f} sent via IF-E-CLR-019."
             ),
             related_invoice_no=invoice_no,
         )
 
     response = ack(
-        "IF-I-CLR-080",
+        CONSIGNMENT_INFORMATION,
         "S001",
         "Successful data transmission",
         reference,
@@ -212,10 +221,10 @@ def process_consignment(
     }
     exchange = {
         "direction_flow": [
-            "1) TANCIS -> TCAMS | IF-I-CLR-080 consignment transmission",
-            "2) TCAMS -> TANCIS | IF-I-CLR-080 acknowledgement",
-            "3) TCAMS -> TANCIS | IF-I-CLR-081 invoice transmission",
-            "4) TANCIS -> TCAMS | IF-I-CLR-081 acknowledgement",
+            "1) TANCIS -> TCAMS | IF-E-CLR-018 Consignment Information",
+            "2) TCAMS -> TANCIS | IF-E-CLR-018 acknowledgement",
+            "3) TCAMS -> TANCIS | IF-E-CLR-019 Agent fee invoice information",
+            "4) TANCIS -> TCAMS | IF-E-CLR-019 acknowledgement",
         ],
         "if_i_clr_080_transmission": payload,
         "if_i_clr_080_reception": ack_080,

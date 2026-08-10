@@ -28,6 +28,13 @@ from services import database as db
 from services.capitalpay import CapitalPayError, fetch_checkout_page
 from services.config import BASE_DIR, INVOICE_DIR, SECRET_KEY
 from services.processor import process_consignment
+from services.notes_status import process_notes_status
+from services.interfaces import (
+    AGENT_FEE_INVOICE,
+    CONSIGNMENT_INFORMATION,
+    CONSIGNMENT_NOTES_STATUS,
+    INTERFACE_CATALOG,
+)
 from services.gn83 import calculate_fees, fee_breakdown_lines
 from services.sample_payloads import (
     payload_for_processing,
@@ -69,6 +76,14 @@ def webhook_consignment():
     payload = request.get_json(silent=True) or {}
     base = request.host_url.rstrip("/")
     ack, _invoice = process_consignment(payload, public_base_url=base)
+    return jsonify(ack)
+
+
+@server.post("/api/v1/webhooks/tancis/consignment-notes-status")
+def webhook_notes_status():
+    """IF-E-CLR-022 Consignment notes status information (legacy IF-I-CLR-067)."""
+    payload = request.get_json(silent=True) or {}
+    ack, _meta = process_notes_status(payload)
     return jsonify(ack)
 
 
@@ -335,6 +350,38 @@ def topbar(user: dict, page: str, unread: int):
     )
 
 
+def _interface_catalog_table() -> html.Table:
+    rows = [
+        html.Tr(
+            [
+                html.Th("Interface Id"),
+                html.Th("Interface Name"),
+                html.Th("Transmitter"),
+                html.Th("Receiver"),
+            ]
+        )
+    ]
+    for item in INTERFACE_CATALOG:
+        highlight = item["interface_id"] == CONSIGNMENT_NOTES_STATUS
+        rows.append(
+            html.Tr(
+                [
+                    html.Td(item["interface_id"]),
+                    html.Td(
+                        html.Span(
+                            item["name"],
+                            style={"fontWeight": 700 if highlight else 400},
+                        )
+                    ),
+                    html.Td(item["transmitter"]),
+                    html.Td(item["receiver"]),
+                ],
+                style={"background": "#F0FDF4" if highlight else "transparent"},
+            )
+        )
+    return html.Table(rows, className="invoice-table")
+
+
 def _pretty(data) -> str:
     return json.dumps(data, indent=2, ensure_ascii=False)
 
@@ -352,8 +399,8 @@ def build_exchange_modal_body(exchange_row):
         [
             dmc.Group(
                 [
-                    dmc.Badge("IF-I-CLR-080", color="teal"),
-                    dmc.Badge("IF-I-CLR-081", color="blue"),
+                    dmc.Badge(CONSIGNMENT_INFORMATION, color="teal"),
+                    dmc.Badge(AGENT_FEE_INVOICE, color="blue"),
                     dmc.Text(
                         exchange_row.get("summary") or "",
                         size="sm",
@@ -371,10 +418,10 @@ def build_exchange_modal_body(exchange_row):
                     dmc.ListItem(step)
                     for step in ex.get("direction_flow")
                     or [
-                        "TANCIS -> TCAMS | IF-I-CLR-080",
-                        "TCAMS -> TANCIS | IF-I-CLR-080 ack",
-                        "TCAMS -> TANCIS | IF-I-CLR-081",
-                        "TANCIS -> TCAMS | IF-I-CLR-081 ack",
+                        "TANCIS -> TCAMS | IF-E-CLR-018 Consignment Information",
+                        "TCAMS -> TANCIS | IF-E-CLR-018 ack",
+                        "TCAMS -> TANCIS | IF-E-CLR-019 Agent fee invoice",
+                        "TANCIS -> TCAMS | IF-E-CLR-019 ack",
                     ]
                 ],
                 size="sm",
@@ -384,10 +431,10 @@ def build_exchange_modal_body(exchange_row):
                 children=[
                     dmc.TabsList(
                         [
-                            dmc.TabsTab("080 Send (TANCIS→TCAMS)", value="080_tx"),
-                            dmc.TabsTab("080 Ack (TCAMS→TANCIS)", value="080_rx"),
-                            dmc.TabsTab("081 Send (TCAMS→TANCIS)", value="081_tx"),
-                            dmc.TabsTab("081 Ack (TANCIS→TCAMS)", value="081_rx"),
+                            dmc.TabsTab("018 Send (Consignment Information)", value="080_tx"),
+                            dmc.TabsTab("018 Ack", value="080_rx"),
+                            dmc.TabsTab("019 Send (Agent fee invoice)", value="081_tx"),
+                            dmc.TabsTab("019 Ack", value="081_rx"),
                             dmc.TabsTab("All JSON", value="all"),
                         ]
                     ),
@@ -540,6 +587,23 @@ def tcams_layout(user: dict):
                         ],
                     ),
                     dmc.Space(h=16),
+                    dmc.Paper(
+                        className="glass-card",
+                        p="md",
+                        withBorder=True,
+                        children=[
+                            dmc.Title("TANCIS ↔ TCAMS interface catalogue", order=4),
+                            dmc.Text(
+                                "IF-E-CLR-022 replaces the former Consignment cancellation interface "
+                                "(IF-I-CLR-067). Payload structure is unchanged.",
+                                size="sm",
+                                c="dimmed",
+                            ),
+                            dmc.Space(h=10),
+                            _interface_catalog_table(),
+                        ],
+                    ),
+                    dmc.Space(h=16),
                     dmc.SimpleGrid(
                         cols=2,
                         spacing="md",
@@ -671,8 +735,8 @@ def tancis_layout(user: dict):
                         title="CFA engagement on TANCIS",
                         color="teal",
                         children=(
-                            "Lodge the declaration here, send the consignment payload (IF-I-CLR-080) to TCAMS, "
-                            "then download the generated invoice returned via IF-I-CLR-081 — without leaving TANCIS."
+                            "Lodge the declaration here, send the consignment payload (IF-E-CLR-018) to TCAMS, "
+                            "then download the generated invoice returned via IF-E-CLR-019 — without leaving TANCIS."
                         ),
                     ),
                     dmc.Space(h=14),
@@ -743,7 +807,7 @@ def tancis_layout(user: dict):
                                 children=[
                                     dmc.Title("Invoice returned from TCAMS", order=4),
                                     dmc.Text(
-                                        "Once TCAMS pushes IF-I-CLR-081, the CFA can view and download here.",
+                                        "Once TCAMS pushes IF-E-CLR-019, the CFA can view and download here.",
                                         size="sm",
                                         c="dimmed",
                                     ),
@@ -774,7 +838,7 @@ def _tancis_invoice_panel(invoice):
         [
             dmc.Group(
                 [
-                    dmc.Badge("IF-I-CLR-081", color="blue"),
+                    dmc.Badge(AGENT_FEE_INVOICE, color="blue"),
                     dmc.Badge(invoice["tancis_result_code"] or "S001", color="teal"),
                     dmc.Badge(invoice["invoice_type"], color="grape"),
                 ]

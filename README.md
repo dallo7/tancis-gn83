@@ -1,11 +1,11 @@
 # TCAMS ↔ TANCIS GN 83 Invoice Studio
 
-Professional Dash + Dash Mantine demo for the TANCIS consignment → TCAMS invoice → TANCIS download loop (IF-I-CLR-080 / IF-I-CLR-081).
+Professional Dash + Dash Mantine demo for the TANCIS consignment → TCAMS invoice → TANCIS download loop (IF-E-CLR-018 / IF-E-CLR-019).
 
 ## Features
 
 - 4 CFA profiles in SQLite with login credentials
-- TANCIS simulator sends IF-I-CLR-080 consignment payloads
+- TANCIS simulator sends IF-E-CLR-018 consignment payloads
 - TCAMS unpacks cargo, applies GN 83 fee rules + VAT, generates bank collection advice
 - Invoice matches the SUC template and adds:
   - unique QR code embedding the payment link
@@ -47,7 +47,7 @@ Transit and road/air tables are also applied from `route_type` and `transport_mo
 
 `standard_minimum + 10% of standard_minimum + 18% of (standard_minimum + 10% of standard_minimum)`
 
-**Service fee only** when TANCIS sends an exempt `message_info.status` on IF-I-CLR-080, or when the declarant TIN is listed as in-house:
+**Service fee only** when TANCIS sends an exempt `message_info.status` on IF-E-CLR-018, or when the declarant TIN is listed as in-house:
 
 `10% of standard_minimum + 18% of (10% of standard_minimum)`
 
@@ -101,7 +101,9 @@ Open `http://localhost:8050`
 
 ## API
 
-`POST /api/v1/webhooks/tancis/consignments` — IF-I-CLR-080 webhook used by the simulator and external callers.
+`POST /api/v1/webhooks/tancis/consignments` — IF-E-CLR-018 Consignment Information (legacy IF-I-CLR-080).
+
+`POST /api/v1/webhooks/tancis/consignment-notes-status` — IF-E-CLR-022 Consignment notes status information (legacy IF-I-CLR-067 Consignment cancellation). Listens for `CL005` / `CL006` on `message_info.status`.
 
 ## Render.com deploy
 

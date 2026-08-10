@@ -366,6 +366,20 @@ def get_latest_invoice_for_tin(tin: str) -> Optional[Dict[str, Any]]:
         return None
 
 
+def get_latest_invoice_for_tansad(tansad_no: str) -> Optional[Dict[str, Any]]:
+    with get_conn() as conn:
+        row = conn.execute(
+            """
+            SELECT * FROM invoices
+            WHERE tansad_no = ?
+            ORDER BY id DESC
+            LIMIT 1
+            """,
+            (tansad_no,),
+        ).fetchone()
+        return dict(row) if row else None
+
+
 def analytics_for_user(user_id: int) -> Dict[str, Any]:
     with get_conn() as conn:
         inv = conn.execute(
